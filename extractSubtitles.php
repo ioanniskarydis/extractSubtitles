@@ -9,7 +9,8 @@
 		--title		parameter optional, if set requires value: extract the subtitles with title definition equal to value of argument
 		--auto		parameter optional, accepts no value: attempts to extract the subtitles with title='English [SDH]', else with 	title='English', else with title='Greek', else asks the user (change titles and ordering at the $defaultTitles variable
 		
-		e.g.: php extractSubtitles.php -v -i aMovie.mp4 --language=ita
+		e.g.: 	php extractSubtitles.php -v -i aMovie.mp4 --language=ita
+				php extractSubtitles.php -i aMovie.mp4 --auto -ext vvt
 		
 		Created by Ioannis Karydis https://users.ionio.gr/~karydis/
 		The GNU General Public License v3.0 - https://tldrlegal.com/license/gnu-general-public-license-v3-(gpl-3)
