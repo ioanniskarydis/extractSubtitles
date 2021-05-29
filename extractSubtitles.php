@@ -8,6 +8,7 @@
 		--language	parameter optional, if set requires value: extract the subtitles with language definition equal to value of argument
 		--title		parameter optional, if set requires value: extract the subtitles with title definition equal to value of argument
 		--auto		parameter optional, accepts no value: attempts to extract the subtitles with title='English [SDH]', else with 	title='English', else with title='Greek', else asks the user (change titles and ordering at the $defaultTitles variable
+		--overwrite	parameter optional, accepts no value: if the output file exists, then auto overwrite, otherwise user's verification is required
 		
 		e.g.: 	php extractSubtitles.php -v -i aMovie.mp4 --language=ita
 				php extractSubtitles.php -i aMovie.mp4 --auto -ext vvt
@@ -21,7 +22,7 @@
 		die ("\033[31mThis script requires ffmpeg & ffprobe accessible by their respective commands which seem to not be available, exiting.\n");
 	
 	//Get the parameters
-	$options = getopt("vi:o:", array("language:", "title:", "auto", "ext:"));
+	$options = getopt("vi:o:", array("language:", "title:", "auto", "ext:", "overwrite"));
 	
 	//Default title ordering for --auto
 	$defaultTitles = array('English [SDH]', 'English', 'Greek');
@@ -31,7 +32,7 @@
 	if (isset($options['v']) === true)
 		$verbose = true;
 	
-	//Check -i is set and the file to operato on exists
+	//Check -i is set and the file to operate on exists
 	if (isset($options['i']) === false)
 		die ("\033[31mNo input, exiting.\n");
 	elseif (file_exists($options['i']) === false)
@@ -54,6 +55,20 @@
 		$subtitleFilename = $path_parts['dirname']."/".$path_parts['filename'].".".$subtitleExt;
 		if (isset($options['o']) === true && $options['o'] !== false) {
 			$subtitleFilename = $options['o'];
+		}
+		
+		//Check and deal with already existing same filename for output
+		$reply = null;
+		$overwrite = false;
+		while ($reply === null && file_exists($subtitleFilename) && isset($options['overwrite']) !== true) {
+			$reply = readline('File already exists. Overwrite? [y/N] ');
+			
+			if (strcasecmp($reply, 'y') === 0)
+				$overwrite = true;
+			elseif (strcasecmp($reply, '') === 0 || strcasecmp($reply, 'n') === 0)
+				die("\033[31mFile exists, overwrite was not allowed, exiting.\r\n");
+			else
+				$reply = null;
 		}
 		
 		//Get list of all subtitles
@@ -103,21 +118,24 @@
 		//Get all available titles in an array
 		$allTitles = array_map(function($element){return $element['tags']['title'];}, $allSubtitles);
 		
-		//if only one subtitle exists in the input file, extract it no questions asked
-		if ($noOfAllSubtitles === 1) {
+		
+		if ($noOfAllSubtitles === 0) {	//If the input file has no sutitles
+			die("\033[31mThe file '".$options['i']."' has no embedded subtitles, exiting.\r\n");
+		}
+		elseif ($noOfAllSubtitles === 1) {	//if only one subtitle exists in the input file, extract it no questions asked
 			$extractSubtitleCommand = 'ffmpeg -i "'.$options['i'].'" -map 0:s:0 "'.$subtitleFilename.'"';
 		} elseif (isset($options['language']) === true) {	//If the --language is set
 			
 			//Get all available languages
-			$allLanguages = array_map(function($element){return $element['tags'][';anguage'];}, $allSubtitles);
+			$allLanguages = array_map(function($element){return $element['tags']['language'];}, $allSubtitles);
 			
 			if (in_array($options['language'], $allLanguages))
-				$extractSubtitleCommand = 'ffmpeg -i "'.$options['i'].'" -map 0:s:m:language:'.$options['language'].' "'.$subtitleFilename.'"';
+				$extractSubtitleCommand = 'ffmpeg -i "'.$options['i'].'" -map 0:s:m:language:"'.$options['language'].'" "'.$subtitleFilename.'"';
 			else
 				die("\033[31mLanguage '".$options["language"]."' does not exist in the input file, exiting.\r\n");
 		} elseif (isset($options['title']) === true) {	//If the --title is set
 			if (in_array($options['title'], $allTitles))
-				$extractSubtitleCommand = 'ffmpeg -i "'.$options['i'].'" -map 0:s:m:title:'.$options['title'].' "'.$subtitleFilename.'"';
+				$extractSubtitleCommand = 'ffmpeg -i "'.$options['i'].'" -map 0:s:m:title:"'.$options['title'].'" "'.$subtitleFilename.'"';
 			else
 				die("\033[31mTitle '".$options['title']."' does not exist in the input file, exiting.\r\n");
 		} else {
@@ -127,7 +145,7 @@
 				//Select a subtitle based on title and the $defaultTitles array's values (ordered)
 				foreach ($defaultTitles as $aDefaultTitle) {
 					if (in_array($aDefaultTitle, $allTitles)) {
-						$extractSubtitleCommand = 'ffmpeg -i "'.$options['i'].'" -map 0:s:m:title:'.$aDefaultTitle.' "'.$subtitleFilename.'"';
+						$extractSubtitleCommand = 'ffmpeg -i "'.$options['i'].'" -map 0:s:m:title:"'.$aDefaultTitle.'" "'.$subtitleFilename.'"';
 						
 						break;
 					}
@@ -152,12 +170,16 @@
 				$extractSubtitleCommand = 'ffmpeg -i "'.$options['i'].'" -map 0:s:'.(intval($theId)-1).' "'.$subtitleFilename.'"';
 			}
 		}
+		
+		//If user allowed the file to be overwritten, add the -y flag to ffmpeg
+		if($overwrite === true)
+			$extractSubtitleCommand = 'ffmpeg -y '.substr($extractSubtitleCommand, 7);
 			
 		$result = null;
 		$result_code = null;
 		
 		//Do the actual extraction of the selected subtitle
-		try {
+		try {			
 			exec($extractSubtitleCommand, $result, $result_code);
 		} catch (Exception $e) {
 			echo 'Caught exception: ',  $e->getMessage(), "\n";
