@@ -143,9 +143,21 @@
 			//If the --auto is set
 			if (isset($options['auto']) === true){	
 				
+				//Clean null values
+				$allTitles = array_filter($allTitles, fn($value) => !is_null($value));
+				$allLanguages = array_filter($allLanguages, fn($value) => !is_null($value));
+				
+				//Measure appearances of each Title & Language - just in case there's an exactly same Title / Language appearing more than once
+				$allTitlesCountValues = null;
+				$allLanguagesCountValues = null;
+				if(is_array($allTitles) && count($allTitles) > 0)
+					$allTitlesCountValues = array_count_values($allTitles);
+				if(is_array($allLanguages) && count($allLanguages) > 0)
+					$allLanguagesCountValues = array_count_values($allLanguages);
+
 				//Select a subtitle based on title and the $defaultTitles array's values (ordered)
 				foreach ($defaultTitles as $aDefaultTitle) {
-					if (is_array($allTitles) && in_array($aDefaultTitle, $allTitles)) {
+					if (is_array($allTitlesCountValues) && isset($allTitlesCountValues[$aDefaultTitle]) && $allTitlesCountValues[$aDefaultTitle] === 1) {
 						$extractSubtitleCommand = 'ffmpeg -i "'.$options['i'].'" -map 0:s:m:title:"'.$aDefaultTitle.'" "'.$subtitleFilename.'"';
 						
 						break;
@@ -155,7 +167,7 @@
 				if ($extractSubtitleCommand === null) {
 					//Select a subtitle based on language and the $defaultLanguages array's values (ordered)
 					foreach ($defaultLanguages as $aDefaultLanguage) {
-						if (is_array($allLanguages) && in_array($aDefaultLanguage, $allLanguages)) {
+						if (is_array($allLanguagesCountValues) && isset($allLanguagesCountValues[$aDefaultLanguage]) && $allLanguagesCountValues[$aDefaultLanguage] === 1) {
 							$extractSubtitleCommand = 'ffmpeg -i "'.$options['i'].'" -map 0:s:m:language:"'.$aDefaultLanguage.'" "'.$subtitleFilename.'"';
 							
 							break;
@@ -169,7 +181,7 @@
 				
 				//Show the alternatives
 				foreach($allSubtitles as $key => $aSubtitle)
-					echo "\t".($key+1)." Title: ".(isset($aSubtitle['tags']['title']) ? $aSubtitle['tags']['title'] : "<N/A>")." (language: ".$aSubtitle['tags']['language'].")\r\n";
+					echo "\t".($key+1)." Title: ".(isset($aSubtitle['tags']['title']) ? $aSubtitle['tags']['title'] : "<N/A>")." (language: ".(isset($aSubtitle['tags']['language']) ? $aSubtitle['tags']['language'] : "<N/A>").")\r\n";
 				
 				//As long as the user has not selected a valid id
 				do {
