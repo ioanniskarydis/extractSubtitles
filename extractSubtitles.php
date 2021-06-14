@@ -74,7 +74,7 @@
 		}
 		
 		//Get list of all subtitles
-		$allSubtitlesCommand = 'ffprobe -loglevel error -select_streams s -show_entries stream=index:stream_tags=language:stream_tags=title -print_format json '.$options['i'];	
+		$allSubtitlesCommand = 'ffprobe -loglevel error -select_streams s -show_entries stream=index:stream_tags=language:stream_tags=title -print_format json \''.$options['i'].'\'';	
 		
 		//Get details of the available subtitles
 		$allSubtitles = null;
