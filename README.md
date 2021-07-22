@@ -8,7 +8,7 @@ PHP cli script to extract subtitle from video files with numerous options. ffmpe
   * --ext 		  parameter optional, if set requires value: the extension (and implicitly the format) of the subtitle to export, default value is srt
   * --language	parameter optional, if set requires value: extract the subtitles with language definition equal to value of argument
   * --title		  parameter optional, if set requires value: extract the subtitles with title definition equal to value of argument
-  * --auto		  parameter optional, accepts no value: attempts to extract the subtitles with title='English [SDH]', else with title='English', else with title='Greek', else asks the user (change titles and ordering at the $defaultTitles variable
+  * --auto		  parameter optional, accepts no value: attempts to extract the subtitles with title='English [SDH]', else with title='English', else with title='Greek', else asks the user (change title values and ordering at the $defaultTitles variable)
 
 The script requires ffmpeg & ffprobe to be installed and callable from the command line
 
